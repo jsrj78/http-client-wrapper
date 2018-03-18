@@ -1,38 +1,24 @@
 import { HttpClient, HttpHeaders, HttpParams, HttpErrorResponse } from '@angular/common/http';
-import { HttpObserve } from '@angular/common/http/src/client';
 import { Router } from '@angular/router';
 
-import { Observable } from 'rxjs';
+import { Observable } from 'rxjs/Observable';
 import { ErrorObservable } from 'rxjs/observable/ErrorObservable';
 import { catchError } from 'rxjs/operators';
-import 'rxjs/add/observable/throw';
-import 'rxjs/add/operator/catch';
 
 import { environment } from './environment';
-
-export interface IRequestOptions {
-  body?: any;
-  headers?: HttpHeaders | {
-      [header: string]: string | string[];
-  };
-  observe?: HttpObserve;
-  params?: HttpParams | {
-      [param: string]: string | string[];
-  };
-  reportProgress?: boolean;
-  responseType?: 'arraybuffer' | 'blob' | 'json' | 'text';
-  withCredentials?: boolean;
-}
+import { IAccount } from './account';
 
 export class HttpClientBase {
-  
+
   constructor(
     public http: HttpClient,
     public router: Router,
     public resourceUrl: string,
-    public excludeAuthenticationHeaders = false
+    public excludeAuthenticationHeaders = false,
+    public apiVersion?: string
   ) {
-    this.resourceUrl = environment.apiUrl + this.resourceUrl;
+    const version = apiVersion ? apiVersion : environment.apiVersion;
+    this.resourceUrl = `${environment.apiUrl}/${apiVersion}/${this.resourceUrl}`;
   }
 
   clearLocalStorage() {
@@ -40,12 +26,19 @@ export class HttpClientBase {
   }
 
   getAccessToken(): string {
-    let user = JSON.parse(localStorage.getItem(environment.userKey));
+    let user = <IAccount>null;
+    try {
+      user = JSON.parse(localStorage.getItem(environment.userKey) || '{}');
+    }
+    catch (error) {
+      console.log(error);
+    }
+
     return user ? user.accessToken : null;
   }
 
   getAuthorizationHeaders(): any {
-    let token = this.getAccessToken();
+    const token = this.getAccessToken();
     if (!token) {
       return null;
     }
@@ -55,9 +48,19 @@ export class HttpClientBase {
     };
   }
 
-  getRequestOptions(queryParams?: any): IRequestOptions {
-    let params: HttpParams = null;   
-    let headers = {
+  getRequestOptions(queryParams?: any): {
+    headers?: HttpHeaders | {
+        [header: string]: string | string[];
+    };
+    observe?: 'body';
+    params?: HttpParams | {
+        [param: string]: string | string[];
+    };
+    reportProgress?: boolean;
+    responseType?: 'json';
+    withCredentials?: boolean;
+  } {
+    const headers = {
       'Content-Type': 'application/json'
     };
 
@@ -65,25 +68,11 @@ export class HttpClientBase {
       Object.assign(headers, this.getAuthorizationHeaders());
     }
 
-    if(queryParams) {
-      params = new HttpParams();
-      Object.keys(queryParams).forEach(key => {
-        if (queryParams[key] !== null) {
-          if (Array.isArray(queryParams[key])) {
-            queryParams[key].forEach(arrKey => {
-              params.append(key, queryParams[key][arrKey]);
-            });
-          }
-          else {
-            params.set(key, queryParams[key]);
-          }
-        }
-      });      
-    }
-
     return {
       headers: new HttpHeaders(headers),
-      params: params,
+      params: new HttpParams({
+        fromObject: queryParams
+      }),
       responseType: 'json'
     };
   }
@@ -92,7 +81,7 @@ export class HttpClientBase {
   handleError(error: HttpErrorResponse) {
     // authentication or forbidden error
     if (error.status === 401 || error.status === 403) {
-      let state = error.status === 401 ? '/login' : '/unauthorized';
+      const state = error.status === 401 ? '/login' : '/unauthorized';
       this.displayError(error);
       this.clearLocalStorage();
       this.router.navigate([state]);
@@ -106,7 +95,7 @@ export class HttpClientBase {
   }
 
   get<T>(queryParams?: any, resourcePath?: string): Observable<T> {
-    return this.http.get<T>(`${this.resourceUrl + resourcePath}`, <any>this.getRequestOptions(queryParams))
+    return this.http.get<T>(`${this.resourceUrl + resourcePath}`, this.getRequestOptions(queryParams))
       .pipe(catchError(this.handleError));
   }
 
@@ -114,30 +103,30 @@ export class HttpClientBase {
     return this.get<T>(queryParams, resourcePath).toPromise();
   }
 
-  post<T>(body?: any, resourcePath?: string): Observable<T> {
-    return this.http.post<T>(`${this.resourceUrl + resourcePath}`, body, <any>this.getRequestOptions())
+  post<T>(body?: any, resourcePath?: string, queryParams?: any): Observable<T> {
+    return this.http.post<T>(`${this.resourceUrl + resourcePath}`, body, this.getRequestOptions(queryParams))
       .pipe(catchError(this.handleError));
   }
 
-  async postAsync<T>(body?: any, resourcePath?: string): Promise<T> {
-    return this.post<T>(body, resourcePath).toPromise();
+  async postAsync<T>(body?: any, resourcePath?: string, queryParams?: any): Promise<T> {
+    return this.post<T>(body, resourcePath, queryParams).toPromise();
   }
 
-  put<T>(body?: any, resourcePath?: string): Observable<T> {
-    return this.http.put<T>(`${this.resourceUrl + resourcePath}`, body, <any>this.getRequestOptions())
+  put<T>(body?: any, resourcePath?: string, queryParams?: any): Observable<T> {
+    return this.http.put<T>(`${this.resourceUrl + resourcePath}`, body, this.getRequestOptions(queryParams))
       .pipe(catchError(this.handleError));
   }
 
-  async putAsync<T>(body?: any, resourcePath?: string): Promise<T> {
-    return this.put<T>(body, resourcePath).toPromise();
+  async putAsync<T>(body?: any, resourcePath?: string, queryParams?: any): Promise<T> {
+    return this.put<T>(body, resourcePath, queryParams).toPromise();
   }
 
-  delete<T>(resourcePath?: string): Observable<T> {
-    return this.http.delete<T>(`${this.resourceUrl + resourcePath}`, <any>this.getRequestOptions())
+  delete<T>(resourcePath?: string, queryParams?: any): Observable<T> {
+    return this.http.delete<T>(`${this.resourceUrl + resourcePath}`, this.getRequestOptions(queryParams))
       .pipe(catchError(this.handleError));
   }
 
-  async deleteAsync<T>(resourcePath?: string): Promise<any> {
-    return this.delete<T>(resourcePath).toPromise();
+  async deleteAsync<T>(resourcePath?: string, queryParams?: any): Promise<any> {
+    return this.delete<T>(resourcePath, queryParams).toPromise();
   }
 }
