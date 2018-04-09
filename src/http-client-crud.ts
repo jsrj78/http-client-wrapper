@@ -10,7 +10,7 @@ import 'rxjs/add/operator/catch';
 
 import { environment } from './environment';
 
-import { HttpClientBase } from './http-client-base';
+import { HttpClientBase, IQueryParams } from './http-client-base';
 
 export interface IPaginatedData<T> {
   records: T[],
@@ -22,63 +22,111 @@ export class HttpClientCRUD<Id, T> extends HttpClientBase {
   constructor(
     http: HttpClient,
     router: Router,    
-    resourceUrl: string,
-    excludeAuthenticationHeaders = false) {
-      super(http, router, resourceUrl, excludeAuthenticationHeaders);
+    resourceUrl: string) {
+      super(http, router, resourceUrl);
   }
 
   // Generic methods
   // Get by id
-  read(id: Id, resourcePath?: string): Observable<T> {
-    return this.get<T>(null, `${resourcePath}/${id}`);
+  read(
+    id: Id,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Observable<T> {
+    return this.get<T>(null, `${resourcePath}/${id}`, excludeAuthenticationHeaders);
   }
 
-  async readAsync(id: Id, resourcePath?: string): Promise<T> {
-    return this.read(id, resourcePath).toPromise();
+  async readAsync(
+    id: Id,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Promise<T> {
+    return this.read(id, resourcePath, excludeAuthenticationHeaders).toPromise();
   }
 
   // Insert
-  create<T>(data: T, resourcePath?: string): Observable<T> {
-    return this.post<T>(data, resourcePath);
+  create<T>(
+    data: T,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Observable<T> {
+    return this.post<T>(data, resourcePath, null, excludeAuthenticationHeaders);
   }
 
-  async createAsync<T>(body?: any, resourcePath?: string): Promise<T> {
-    return this.create<T>(body, resourcePath).toPromise();
+  async createAsync<T>(
+    data: T,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Promise<T> {
+    return this.create<T>(data, resourcePath, excludeAuthenticationHeaders).toPromise();
   }
 
   // Update
-  update(id: Id, data: T, resourcePath?: string): Observable<T> {
-    return this.put<T>(data, `${resourcePath}/${id}`);
+  update(
+    id: Id,
+    data: T,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Observable<T> {
+    return this.put<T>(data, `${resourcePath}/${id}`, null, excludeAuthenticationHeaders);
   }
 
-  async updateAsync(id: Id, data: T, resourcePath?: string): Promise<T> {
-    return this.update(id, data, resourcePath).toPromise();
+  async updateAsync(
+    id: Id,
+    data: T,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false): Promise<T> {
+    return this.update(id, data, resourcePath, excludeAuthenticationHeaders).toPromise();
   }
 
   // Remove
-  remove(id: Id, resourcePath?: string): Observable<T> {
-    return this.delete<T>(`${resourcePath}/${id}`);
+  remove(
+    id: Id,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Observable<T> {
+    return this.delete<T>(`${resourcePath}/${id}`, null, excludeAuthenticationHeaders);
   }
 
-  async removeAsync(id: Id, resourcePath?: string): Promise<T> {
-    return this.remove(id, resourcePath).toPromise();
+  async removeAsync(
+    id: Id,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Promise<T> {
+    return this.remove(id, resourcePath, excludeAuthenticationHeaders).toPromise();
   }
 
   // Read
-  query<T>(queryParams?: any, resourcePath?: string): Observable<T[]> {
-    return this.get<T[]>(queryParams, resourcePath);
+  query<T>(
+    queryParams?: IQueryParams,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Observable<T[]> {
+    return this.get<T[]>(queryParams, resourcePath, excludeAuthenticationHeaders);
   }
 
-  async queryAsync<T>(queryParams?: any, resourcePath?: string): Promise<T[]> {
-    return this.query<T>(queryParams, resourcePath).toPromise();
+  async queryAsync<T>(
+    queryParams?: IQueryParams,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Promise<T[]> {
+    return this.query<T>(queryParams, resourcePath, excludeAuthenticationHeaders).toPromise();
   }
 
   // Read Paginated
-  queryPaginated<T>(queryParams?: any, resourcePath?: string): Observable<IPaginatedData<T>> {
-    return this.get<IPaginatedData<T>>(queryParams, resourcePath);
+  queryPaginated<T>(
+    queryParams?: IQueryParams,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Observable<IPaginatedData<T>> {
+    return this.get<IPaginatedData<T>>(queryParams, resourcePath, excludeAuthenticationHeaders);
   }
 
-  async queryPaginatedAsync<T>(queryParams?: any, resourcePath?: string): Promise<IPaginatedData<T>> {
-    return this.queryPaginated<T>(queryParams, resourcePath).toPromise();
+  async queryPaginatedAsync<T>(
+    queryParams?: IQueryParams,
+    resourcePath?: string,
+    excludeAuthenticationHeaders = false
+  ): Promise<IPaginatedData<T>> {
+    return this.queryPaginated<T>(queryParams, resourcePath, excludeAuthenticationHeaders).toPromise();
   }
 }
